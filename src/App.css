@@ -4,7 +4,18 @@
 .app {
   background-color: #fafafa;
 }
+.app-posts {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+.app-postsRight {
+  margin-left: 20px;
+}
 .app__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   background-color: white;
   padding: 20px;
   object-fit: contain;
@@ -15,9 +26,7 @@
 .app__headerImage {
   object-fit: contain;
 }
-.app__signUp {
-  margin: 20px;
-}
+
 .signUp {
   display: flex;
   flex-direction: column;

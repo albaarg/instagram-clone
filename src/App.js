@@ -6,6 +6,8 @@ import Modal from "@material-ui/core/Modal";
 import { makeStyles } from "@material-ui/core/styles";
 import { Button, Input } from "@material-ui/core";
 import { ImageUpload } from "./Components/ImageUpload/ImageUpload.";
+import firebase from "firebase";
+import { useAuthState } from "react-firebase-hooks/auth";
 
 function getModalStyle() {
   const top = 50;
@@ -32,30 +34,32 @@ const useStyles = makeStyles((theme) => ({
 function App() {
   const classes = useStyles();
   const [modalStyle] = useState(getModalStyle);
+
   const [posts, setPosts] = useState([]);
   const [open, setOpen] = useState(false);
   const [openSignIn, setOpenSignIn] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-  const [user, setUser] = useState(null);
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [show, setShow] = useState(false);
+  // const [user, setUser] = useState()
+
+  const [user] = useAuthState(auth);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((authUser) => {
-      if (authUser) {
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
         // User is signed in, see docs for a list of available properties
         // https://firebase.google.com/docs/reference/js/firebase.User
-        console.log(authUser);
-        setUser(authUser);
+        let uid = user.uid;
+        console.log(user);
+        // ...
       } else {
         // User is signed out
-        setUser(null);
+        // ...
+        console.log("user is not logged");
       }
     });
-
-    return () => {
-      unsubscribe();
-    };
   }, [user, username]);
 
   useEffect(() => {
@@ -68,45 +72,70 @@ function App() {
       });
   }, []);
 
-  const signUp = (event) => {
-    event.preventDefault();
-    auth
+  const signUp = (e) => {
+    e.preventDefault();
+
+    firebase
+      .auth()
       .createUserWithEmailAndPassword(email, password)
-      .then((authUser) => {
-        return authUser.user.updateProfile({
+      .then((userCredential) => {
+        // Signed in
+        var user = userCredential.user;
+
+        user.updateProfile({
           displayName: username,
         });
+        console.log(user);
+        console.log(user.displayName);
+        setOpen(false);
+        // ...
       })
-      .catch((error) => alert(error.message));
+      .catch((error) => {
+        // ..
+      });
+
+    setUsername("");
+    setPassword("");
+    setEmail("");
   };
 
-  const signIn = (event) => {
-    event.preventDefault();
+  const signIn = (e) => {
+    e.preventDefault();
 
-    auth
-      .signInWithEmailAndPassword(email)
-      .catch((error) => alert(error.message));
-
-    setOpenSignIn(false);
+    firebase
+      .auth()
+      .signInWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        // Signed in
+        var user = userCredential.user;
+        setOpenSignIn(false);
+      })
+      .catch((error) => {});
+    setUsername("");
+    setPassword("");
+    setEmail("");
   };
+
   return (
     <div className="App">
       <Modal open={open} onClose={() => setOpen(false)}>
         <div style={modalStyle} className={classes.paper}>
-          <form className="sign-up">
+          <form className="signUp">
             <center>
               <img
-                className="app__signUp"
+                className="app__headerImage"
                 src="https://www.instagram.com/static/images/web/mobile_nav_type_logo.png/735145cfe0a4.png"
                 alt=""
               />
             </center>
+
             <Input
               type="text"
               placeholder="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
+
             <Input
               type="email"
               placeholder="email"
@@ -120,10 +149,7 @@ function App() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <Button type="submit" onClick={signUp}>
-              {" "}
-              Sign Up
-            </Button>
+            <Button onClick={signUp}>Sign Up</Button>
           </form>
         </div>
       </Modal>
@@ -133,8 +159,8 @@ function App() {
           <form className="signUp">
             <center>
               <img
-                className="app__signUp"
-                src="https://www.instagram.com//static/images/web/mobile_nav_type_logo.png/735145cfe0a4.png"
+                className="app__headerImage"
+                src="https://www.instagram.com/static/images/web/mobile_nav_type_logo.png/735145cfe0a4.png"
                 alt=""
               />
             </center>
@@ -156,6 +182,7 @@ function App() {
           </form>
         </div>
       </Modal>
+
       <div className="app__header">
         <img
           className="app__headerImage"
@@ -163,29 +190,46 @@ function App() {
           alt=""
         />
         {user ? (
-          <Button onClick={() => auth.signOut()}>Logout</Button>
+          <div>
+            <Button
+              className="upload-btn"
+              variant="outlined"
+              onClick={() => setShow(!show)}
+            >
+              Upload Photo{" "}
+            </Button>
+            <Button onClick={() => auth.signOut()}>Log Out</Button>
+          </div>
         ) : (
-          <div className="login-container">
-            <Button onClick={() => setOpen(true)}>Sign In</Button>
+          <div>
+            <Button onClick={() => setOpenSignIn(true)}>Sign In</Button>
             <Button onClick={() => setOpen(true)}>Sign Up</Button>
           </div>
         )}
       </div>
 
-      <h1>HOLA</h1>
-      {posts.map(({ id, post }) => (
-        <Post
-          key={id}
-          username={post.username}
-          caption={post.caption}
-          imageUrl={post.imageUrl}
+      {show && (
+        <ImageUpload
+          show={show}
+          setShow={setShow}
+          username={user.displayName}
         />
-      ))}
-      {user?.displayName ? (
-        <ImageUpload username={user.displayName} />
-      ) : (
-        <h3>Sorry you need to login to upload </h3>
       )}
+
+      <div className="app-posts ">
+        <div className="app-postsRight">
+          {posts.map(({ post, id }) => (
+            <Post
+              key={id}
+              postId={id}
+              user={user}
+              username={post.username}
+              caption={post.caption}
+              imageUrl={post.imageUrl}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

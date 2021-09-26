@@ -4,7 +4,7 @@ import { storage, db } from "../firebase/firebase";
 import firebase from "firebase";
 import "./ImageUpload.css";
 
-export const ImageUpload = ({ username }) => {
+export const ImageUpload = ({ username, setShow }) => {
   const [image, setImage] = useState(null);
   const [progress, setProgress] = useState(0);
   const [caption, setCaption] = useState("");
@@ -41,6 +41,7 @@ export const ImageUpload = ({ username }) => {
               imageUrl: url,
               username: username,
             });
+            setShow(false);
             setProgress(0);
             setCaption("");
             setImage(null);
@@ -50,15 +51,23 @@ export const ImageUpload = ({ username }) => {
   };
   return (
     <div className="imageupload">
-      <progress value={progress} max="100"></progress>
+      <progress
+        className="imageupload-progress"
+        value={progress}
+        max="100"
+      ></progress>
       <input
         type="text"
         placeholder="Enter a caption..."
         onChange={(event) => setCaption(event.target.value)}
         value={caption}
+        s
       />
-      <input type="file" onChange={handleChange} />
-      <Button onClick={handleUpload}> Upload</Button>
+      <input type="file" className="fileUpload" onChange={handleChange} />
+      <Button variant="contained" className="btn-upload" onClick={handleUpload}>
+        {" "}
+        Upload
+      </Button>
     </div>
   );
 };
